@@ -1,0 +1,26 @@
+{
+  "name": "verifai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VerifAI - The AI Trust Infrastructure on Hedera",
+  "scripts": {
+    "prepare": "husky install",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "pnpm -r exec vitest run",
+    "test:watch": "pnpm -r exec vitest",
+    "test:coverage": "pnpm -r exec vitest run --coverage",
+    "test:integration": "pnpm -r exec vitest run -c vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "type-check": "pnpm -r exec tsc --noEmit",
+    "build": "pnpm -r run build"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.2"
+  }
+}

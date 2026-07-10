@@ -1,0 +1,22 @@
+name: CD Pipeline (Future Deployment)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-prep:
+    name: Deployment Preparation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Environment Variables
+        run: |
+          echo "Preparing deployment payload..."
+          # Future: Trigger Vercel CLI or Railway CLI here using GitHub Secrets.
+          # example: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+          echo "Deployment steps will be injected here in later milestones."
