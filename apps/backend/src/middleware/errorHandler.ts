@@ -64,6 +64,24 @@ export function errorHandler(
     });
   }
 
+  if (err.name === 'InvalidTokenError') {
+    logger.warn({ correlationId }, 'Email verification failed: Invalid token');
+    return res.status(400).json({
+      status: 400,
+      error: 'Bad Request',
+      message: err.message,
+    });
+  }
+
+  if (err.name === 'ExpiredTokenError') {
+    logger.warn({ correlationId }, 'Email verification failed: Expired token');
+    return res.status(400).json({
+      status: 400,
+      error: 'Bad Request',
+      message: err.message,
+    });
+  }
+
   // 4. Fallback for unhandled internal exceptions
   logger.error(
     { correlationId, err: { message: err.message, stack: err.stack } },

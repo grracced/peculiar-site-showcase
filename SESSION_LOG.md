@@ -40,14 +40,20 @@
 **Completed Actions:** Exposed the registration endpoint under the TDR-compliant REST route `POST /api/v1/users` and bootstrapped the Express server configuration. Created `in-memory-user.repository.ts`, `errorHandler.ts`, `users.controller.ts`, `users.router.ts`, `tsconfig.json`, and `index.ts`.
 
 ## Session 14: Secure User Login (Credential Verification) — Sprint 1.3
-- **Milestone:** Sprint 1.3
+**Completed Actions:** Implemented standard Login flow supporting password checking via argon2, email-verification/suspension check blockades, and sanitised outgoing response DTO objects. Created authentication controllers and router bindings. Implemented 5 unit tests and 5 integration tests.
+
+## Session 15: Custom Email Verification — Sprint 1.4
+**Completed Actions:** Implemented cryptographically secure email verification lifecycle using SHA-256 token hashing, verification expiration windows, and logging email hooks. Bootstrapped dedicated `server.ts` starting files to resolve port conflict issues inside tests.
+
+## Session 16: Secure Password Reset System — Sprint 1.5
+- **Milestone:** Sprint 1.5
 - **Completed Actions:**
-  - Implemented `AuthResponseSchema` in `user.schema.ts` defining the reusable `AuthResponseDto`.
-  - Implemented `AuthService` logic to normalize emails, check existence, verify argon2 passwords, and block unverified (`emailVerified = false`) or suspended (`status = SUSPENDED`) accounts.
-  - Configured `AuthService.login()` to return a `UserWithProfile` join entity, retrieving the user's `fullName`.
-  - Added structured logging for login outcomes (successful, mismatch, missing, unverified, suspended) via Pino.
-  - Implemented `AuthController` mapping, validating, and returning sanitised `AuthResponseDto` payloads.
-  - Added `supertest` dependencies and created `login.integration.test.ts` implementing Express HTTP integration tests testing all 5 credential flows (success, mismatch password, unknown email, unverified, suspended).
-  - Excluded test files from TypeScript build schema inside `tsconfig.json` to prevent type resolution conflicts.
-  - Configured Swagger UI mounting inside `index.ts` to serve route specifications written in `docs/openapi.yaml`.
-- **Next Steps:** Sprint 1.4 — Session Management & JWT Generation.
+  - Added password reset tracking columns (`passwordResetTokenHash`, `passwordResetExpiresAt`, `passwordChangedAt`) to Prisma schema.
+  - Extended domain entity interface and repository contracts to support custom token manipulation, hashing, and retrieval.
+  - Implemented `PasswordResetService` supporting cryptographically secure token creation, SHA-256 hashing, default 1-hour expiration windows, and Argon2 hashing for credential updates.
+  - Configured enumeration-safe forgot-password execution paths that always return a standard response.
+  - Created validation schemas for forgot and reset payloads.
+  - Mounted endpoints at `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password`.
+  - Added Swagger documentation to `docs/openapi.yaml`.
+  - Implemented 8 comprehensive integration tests in `password-reset.integration.test.ts`.
+- **Next Steps:** Sprint 1.6 — Session Management, JWT Token Generation & Refresh Tokens.

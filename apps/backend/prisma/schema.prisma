@@ -55,6 +55,20 @@ model User {
   // Set to true after the user clicks the confirmation link in their welcome email.
   emailVerified Boolean @default(false) @map("email_verified")
 
+  // Verification token hash stored securely (SHA-256)
+  verificationTokenHash String? @map("verification_token_hash") @db.VarChar(64)
+
+  // Expiration timestamp for the verification link
+  verificationTokenExpiresAt DateTime? @map("verification_token_expires_at")
+
+  // Audit timestamp for when verification succeeded
+  emailVerifiedAt DateTime? @map("email_verified_at")
+
+  // Password reset fields securely hashed
+  passwordResetTokenHash String? @map("password_reset_token_hash") @db.VarChar(64)
+  passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
+  passwordChangedAt DateTime? @map("password_changed_at")
+
   // Audit timestamps — automatically managed.
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

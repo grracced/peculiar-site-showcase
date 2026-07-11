@@ -93,4 +93,75 @@ export interface IUserRepository {
    * @returns void.
    */
   softDelete(id: string): Promise<void>;
+
+  /**
+   * Stores the verification token hash and expiration details.
+   *
+   * @param userId - The user ID to store the verification details against.
+   * @param tokenHash - Hashed verification token, or null to clear.
+   * @param expiresAt - Expiration timestamp, or null to clear.
+   */
+  updateVerificationToken(userId: string, tokenHash: string | null, expiresAt: Date | null): Promise<void>;
+
+  /**
+   * Finds an active user by their hashed verification token.
+   *
+   * @param tokenHash - The hashed token.
+   * @returns The User, or null if not found or token has expired/unmatched.
+   */
+  findByVerificationTokenHash(tokenHash: string): Promise<User | null>;
+
+  /**
+   * Marks a user's email as verified. Clears the verification token hash,
+   * expiration window, sets emailVerified = true and sets emailVerifiedAt timestamp.
+   *
+   * @param userId - The user ID to verify.
+   * @param verifiedAt - Timestamp of successful verification.
+   * @returns The updated User entity.
+   */
+  verifyEmail(userId: string, verifiedAt: Date): Promise<User>;
+
+  /**
+   * Retrieves the expiration date of the verification token for a given user.
+   *
+   * @param userId - The user ID.
+   * @returns Expiration timestamp, or null if not set or user not found.
+   */
+  getVerificationExpiry(userId: string): Promise<Date | null>;
+
+  /**
+   * Stores the password reset token hash and expiration details.
+   *
+   * @param userId - The user ID.
+   * @param tokenHash - Hashed password reset token, or null to clear.
+   * @param expiresAt - Expiration timestamp, or null to clear.
+   */
+  updatePasswordResetToken(userId: string, tokenHash: string | null, expiresAt: Date | null): Promise<void>;
+
+  /**
+   * Finds an active user by their hashed password reset token.
+   *
+   * @param tokenHash - The hashed token.
+   * @returns The User, or null if not found.
+   */
+  findByPasswordResetTokenHash(tokenHash: string): Promise<User | null>;
+
+  /**
+   * Resets the user's password. Updates `passwordHash` and `passwordChangedAt` timestamp,
+   * while clearing the password reset token hash and expiration details.
+   *
+   * @param userId - The user ID.
+   * @param passwordHash - Newly hashed password.
+   * @param changedAt - Timestamp of successful change.
+   * @returns The updated User entity.
+   */
+  resetPassword(userId: string, passwordHash: string, changedAt: Date): Promise<User>;
+
+  /**
+   * Retrieves the expiration date of the password reset token for a given user.
+   *
+   * @param userId - The user ID.
+   * @returns Expiration timestamp, or null if not set or user not found.
+   */
+  getPasswordResetExpiry(userId: string): Promise<Date | null>;
 }

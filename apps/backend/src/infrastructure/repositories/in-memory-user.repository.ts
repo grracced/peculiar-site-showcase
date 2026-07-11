@@ -69,6 +69,8 @@ export class InMemoryUserRepository implements IUserRepository {
       role: UserRole.USER,
       status: AccountStatus.PENDING_VERIFICATION,
       emailVerified: false,
+      emailVerifiedAt: null,
+      passwordChangedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,
@@ -86,16 +88,28 @@ export class InMemoryUserRepository implements IUserRepository {
     const userId = crypto.randomUUID();
     const profileId = crypto.randomUUID();
 
-    const newUser: User & { passwordHash: string } = {
+    const newUser: User & {
+      passwordHash: string;
+      verificationTokenHash?: string | null;
+      verificationTokenExpiresAt?: Date | null;
+      passwordResetTokenHash?: string | null;
+      passwordResetExpiresAt?: Date | null;
+    } = {
       id: userId,
       email: data.email.toLowerCase().trim(),
       role: UserRole.USER,
       status: AccountStatus.PENDING_VERIFICATION,
       emailVerified: false,
+      emailVerifiedAt: null,
+      passwordChangedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,
       passwordHash: data.passwordHash,
+      verificationTokenHash: null,
+      verificationTokenExpiresAt: null,
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
     };
 
     const newProfile: UserProfile = {
@@ -163,6 +177,107 @@ export class InMemoryUserRepository implements IUserRepository {
       deletedAt: new Date(),
       updatedAt: new Date(),
     });
+  }
+
+  async updateVerificationToken(userId: string, tokenHash: string | null, expiresAt: Date | null): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    this.users.set(userId, {
+      ...user,
+      verificationTokenHash: tokenHash,
+      verificationTokenExpiresAt: expiresAt,
+      updatedAt: new Date(),
+    } as any);
+  }
+
+  async findByVerificationTokenHash(tokenHash: string): Promise<User | null> {
+    const user = Array.from(this.users.values()).find(
+      (u: any) => u.verificationTokenHash === tokenHash && u.deletedAt === null
+    );
+    if (!user) {
+      return null;
+    }
+    const { passwordHash, verificationTokenHash, verificationTokenExpiresAt, ...userWithoutSecrets } = user as any;
+    return userWithoutSecrets;
+  }
+
+  async verifyEmail(userId: string, verifiedAt: Date): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    const updatedUser = {
+      ...user,
+      emailVerified: true,
+      emailVerifiedAt: verifiedAt,
+      status: AccountStatus.ACTIVE,
+      verificationTokenHash: null,
+      verificationTokenExpiresAt: null,
+      updatedAt: new Date(),
+    };
+
+    this.users.set(userId, updatedUser);
+    const { passwordHash, ...userWithoutSecrets } = updatedUser as any;
+    return userWithoutSecrets;
+  }
+
+  async getVerificationExpiry(userId: string): Promise<Date | null> {
+    const user: any = this.users.get(userId);
+    return user?.verificationTokenExpiresAt || null;
+  }
+
+  async updatePasswordResetToken(userId: string, tokenHash: string | null, expiresAt: Date | null): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    this.users.set(userId, {
+      ...user,
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: expiresAt,
+      updatedAt: new Date(),
+    } as any);
+  }
+
+  async findByPasswordResetTokenHash(tokenHash: string): Promise<User | null> {
+    const user = Array.from(this.users.values()).find(
+      (u: any) => u.passwordResetTokenHash === tokenHash && u.deletedAt === null
+    );
+    if (!user) {
+      return null;
+    }
+    const { passwordHash, verificationTokenHash, verificationTokenExpiresAt, passwordResetTokenHash, passwordResetExpiresAt, ...userWithoutSecrets } = user as any;
+    return userWithoutSecrets;
+  }
+
+  async resetPassword(userId: string, passwordHash: string, changedAt: Date): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
+    const updatedUser = {
+      ...user,
+      passwordHash,
+      passwordChangedAt: changedAt,
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
+      updatedAt: new Date(),
+    };
+
+    this.users.set(userId, updatedUser);
+    const { passwordHash: _, ...userWithoutSecrets } = updatedUser as any;
+    return userWithoutSecrets;
+  }
+
+  async getPasswordResetExpiry(userId: string): Promise<Date | null> {
+    const user: any = this.users.get(userId);
+    return user?.passwordResetExpiresAt || null;
   }
 
   /**

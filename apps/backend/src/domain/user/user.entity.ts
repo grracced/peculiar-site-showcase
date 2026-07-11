@@ -33,6 +33,12 @@ export interface User {
   /** Whether the user has confirmed their email address. */
   readonly emailVerified: boolean;
 
+  /** Timestamp of when the user verified their email address. */
+  readonly emailVerifiedAt: Date | null;
+
+  /** Timestamp of when the user changed/reset their password. */
+  readonly passwordChangedAt: Date | null;
+
   /** Timestamp when the account was created. */
   readonly createdAt: Date;
 

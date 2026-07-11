@@ -133,3 +133,20 @@ export const AuthResponseSchema = z.object({
 
 export type AuthResponseDto = z.infer<typeof AuthResponseSchema>;
 
+export const ForgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  newPassword: passwordSchema,
+  confirmPassword: z.string().min(1, 'Password confirmation is required'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+

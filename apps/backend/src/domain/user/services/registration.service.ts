@@ -3,6 +3,8 @@ import { UserWithProfile } from '../user.entity';
 import { UserRegistrationSchema } from '../user.schema';
 import { hashPassword } from '../../../utils/password';
 import { logger } from '../../../utils/logger';
+import { EmailVerificationService } from './email-verification.service';
+import { IEmailService } from './email.interface';
 
 /**
  * Domain-level exception thrown when attempting to register a user with an email
@@ -27,7 +29,11 @@ export interface RegisterUserDto {
  * Enforces business rules (uniqueness check, hashing, transactions) at the domain layer.
  */
 export class RegistrationService {
-  constructor(private readonly userRepository: IUserRepository) {}
+  constructor(
+    private readonly userRepository: IUserRepository,
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly emailService: IEmailService
+  ) {}
 
   /**
    * Register a new user and generate their profile.
@@ -64,7 +70,17 @@ export class RegistrationService {
       lastName: validated.lastName,
     });
 
-    logger.info({ userId: userWithProfile.id }, 'User registration completed successfully');
+    // 5. Generate and hash the verification token
+    const verificationToken = await this.emailVerificationService.generateAndSaveToken(userWithProfile.id);
+
+    // 6. Send verification email (Mock)
+    const appUrl = process.env.APP_URL || 'https://getverifai.me';
+    const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`;
+
+    logger.debug({ email: userWithProfile.email, userId: userWithProfile.id }, 'Sending verification email');
+    await this.emailService.sendVerificationEmail(userWithProfile.email, verificationLink);
+
+    logger.info({ userId: userWithProfile.id }, 'User registration and email verification dispatch completed');
     
     return userWithProfile;
   }

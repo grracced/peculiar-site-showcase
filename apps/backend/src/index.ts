@@ -31,9 +31,4 @@ app.use('/api/v1/auth', authRouter);
 // 4. Centralized Error Handler (must be registered last)
 app.use(errorHandler);
 
-// 5. Bootstrap Server
-app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
-
 export default app; // exported for testing support
