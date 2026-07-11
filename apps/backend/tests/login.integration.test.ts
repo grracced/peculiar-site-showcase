@@ -46,12 +46,16 @@ describe('Auth Integration Tests (POST /api/v1/auth/login)', () => {
     
     // AuthResponse DTO validation
     const { data } = response.body;
-    expect(data.userId).toBe(userWithProfile.id);
-    expect(data.email).toBe(email);
-    expect(data.fullName).toBe('John Doe');
-    expect(data.role).toBe(UserRole.USER);
-    expect(data.emailVerified).toBe(true);
-    expect(data.passwordHash).toBeUndefined(); // Verify sensitive fields are redacted
+    expect(data.accessToken).toBeDefined();
+    expect(data.refreshToken).toBeDefined();
+    expect(data.expiresIn).toBeDefined();
+    expect(data.tokenType).toBe('Bearer');
+    expect(data.user.userId).toBe(userWithProfile.id);
+    expect(data.user.email).toBe(email);
+    expect(data.user.fullName).toBe('John Doe');
+    expect(data.user.role).toBe(UserRole.USER);
+    expect(data.user.emailVerified).toBe(true);
+    expect(data.user.passwordHash).toBeUndefined(); // Verify sensitive fields are redacted
   });
 
   it('should return 401 Unauthorized for incorrect password', async () => {

@@ -46,14 +46,18 @@
 **Completed Actions:** Implemented cryptographically secure email verification lifecycle using SHA-256 token hashing, verification expiration windows, and logging email hooks. Bootstrapped dedicated `server.ts` starting files to resolve port conflict issues inside tests.
 
 ## Session 16: Secure Password Reset System — Sprint 1.5
-- **Milestone:** Sprint 1.5
+**Completed Actions:** Implemented secure, OWASP-compliant password reset system tracking hashed verification tokens and expirations, updating credential states, and logging actions safely.
+
+## Session 17: Secure JWT & Session Management — Sprint 1.7
+- **Milestone:** Sprint 1.7
 - **Completed Actions:**
-  - Added password reset tracking columns (`passwordResetTokenHash`, `passwordResetExpiresAt`, `passwordChangedAt`) to Prisma schema.
-  - Extended domain entity interface and repository contracts to support custom token manipulation, hashing, and retrieval.
-  - Implemented `PasswordResetService` supporting cryptographically secure token creation, SHA-256 hashing, default 1-hour expiration windows, and Argon2 hashing for credential updates.
-  - Configured enumeration-safe forgot-password execution paths that always return a standard response.
-  - Created validation schemas for forgot and reset payloads.
-  - Mounted endpoints at `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password`.
+  - Added `UserSession` model to Prisma schema with relationships mapping.
+  - Installed `jsonwebtoken` and its typings inside the backend workspace.
+  - Declared `ISessionRepository` interface and implemented `InMemorySessionRepository` handling session state operations.
+  - Implemented `JwtService` creating Access and Refresh tokens with configurable expirations, dynamically injecting `jti` to enforce rotating token uniqueness.
+  - Implemented `SessionService` and `TokenService` managing tokens and rotation rotation validation checks.
+  - Configured `jwtGuard` middleware extracting token payloads and mounting `user` and `sessionId` metadata.
+  - Created controllers/endpoints for `/auth/refresh`, `/auth/logout`, `/auth/sessions`, `DELETE /auth/sessions/:id` and `DELETE /auth/sessions`.
   - Added Swagger documentation to `docs/openapi.yaml`.
-  - Implemented 8 comprehensive integration tests in `password-reset.integration.test.ts`.
-- **Next Steps:** Sprint 1.6 — Session Management, JWT Token Generation & Refresh Tokens.
+  - Implemented 9 integration tests in `session.integration.test.ts` and updated existing login assertions.
+- **Next Steps:** Sprint 2.1 — Hedera Hashgraph Integration and Decoupled Transaction Service.

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { IUserRepository } from '../user.repository';
+import { ISessionRepository } from '../session.repository';
 import { IEmailService } from './email.interface';
 import { hashPassword } from '../../../utils/password';
 import { logger } from '../../../utils/logger';
@@ -8,7 +9,8 @@ import { InvalidTokenError, ExpiredTokenError } from './email-verification.servi
 export class PasswordResetService {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly emailService: IEmailService
+    private readonly emailService: IEmailService,
+    private readonly sessionRepository: ISessionRepository
   ) {}
 
   /**
@@ -90,9 +92,9 @@ export class PasswordResetService {
     // 4. Update the user's password and clear token fields
     await this.userRepository.resetPassword(user.id, passwordHash, new Date());
 
-    // 5. Invalidation placeholder hook
-    // Note: Once JWT sessions are implemented, we will invalidate sessions here.
-    logger.info({ userId: user.id }, 'Password reset executed successfully. Session invalidation hooks prepared');
+    // 5. Invalidate all active user sessions
+    await this.sessionRepository.revokeAllForUser(user.id);
+    logger.info({ userId: user.id }, 'Password reset executed successfully. All active sessions revoked.');
   }
 
   /**

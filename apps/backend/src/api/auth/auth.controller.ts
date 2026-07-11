@@ -2,11 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../domain/user/services/auth.service';
 import { EmailVerificationService } from '../../domain/user/services/email-verification.service';
 import { PasswordResetService } from '../../domain/user/services/password-reset.service';
+import { TokenService } from '../../domain/user/services/token.service';
+import { SessionService } from '../../domain/user/services/session.service';
 import { validateData } from '../../utils/validation';
 import {
   LoginSchema,
   LoginInput,
-  AuthResponseSchema,
   ForgotPasswordSchema,
   ForgotPasswordInput,
   ResetPasswordSchema,
@@ -20,7 +21,9 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailVerificationService: EmailVerificationService,
-    private readonly passwordResetService: PasswordResetService
+    private readonly passwordResetService: PasswordResetService,
+    private readonly tokenService: TokenService,
+    private readonly sessionService: SessionService
   ) {}
 
   /**
@@ -35,23 +38,23 @@ export class AuthController {
       // 2. Delegate authentication to service layer
       const userWithProfile = await this.authService.login(loginDto);
 
-      // 3. Construct and validate outgoing DTO
-      const authResponse = AuthResponseSchema.parse({
-        userId: userWithProfile.id,
-        email: userWithProfile.email,
-        fullName: userWithProfile.profile?.fullName ?? '',
-        role: userWithProfile.role,
-        emailVerified: userWithProfile.emailVerified,
-      });
+      // 3. Delegate tokens and session response creation
+      const userAgent = req.headers['user-agent'] || null;
+      const ipAddress = req.ip || null;
+      const tokenResponse = await this.tokenService.generateAuthResponse(
+        userWithProfile,
+        null, // deviceName placeholder
+        ipAddress,
+        userAgent
+      );
 
       // 4. Return standardized API success response
       res.status(200).json({
         status: 200,
         message: 'User logged in successfully',
-        data: authResponse,
+        data: tokenResponse,
       });
     } catch (err) {
-      // Forward authentication exceptions (e.g. InvalidCredentialsError) to errorHandler middleware
       next(err);
     }
   };
@@ -68,40 +71,7 @@ export class AuthController {
         throw new Error('Verification token is required.');
       }
 
-      // We will let the emailVerificationService handle token checking. To check if already verified, 
-      // we lookup the token first or we query inside service. Let's do it in the service itself:
-      // Our EmailVerificationService.verify checks user.emailVerified. If true, it returns the user directly
-      // without updating verifiedAt again.
-      // So we can inspect if the returned user was already verified before or if verifiedAt is updated.
-      // Wait, we can fetch the user by token hash to check if already verified.
-      // Since our service verify() clears the hash, it's easier to check if the user is already verified inside the verify function.
-      // Yes, we will check if the user was already verified.
-      // To know this, we can return a flag or check if the user's emailVerified was already true in the repository before verifyEmail is called.
-      // In our EmailVerificationService, we wrote:
-      // if (user.emailVerified) { return user; }
-      // This is perfect! The verify() method returns the user without modifications.
-      // If we call verify(token) and the returned user's emailVerified was already true, we know it's a duplicate check!
-      // Wait! But verifyEmail updates `emailVerified = true` in the DB and returns the updated user where `emailVerified = true`.
-      // So we can't tell them apart unless we inspect the state before.
-      // Let's check `emailVerified` on the user fetched by token hash *before* we call repository `verifyEmail`.
-      // Yes, let's see: we did exactly that in EmailVerificationService:
-      // if (user.emailVerified) { return user; }
-      // So if it was already verified, it returns the user *without* calling verifyEmail (which means emailVerifiedAt is not set to a new date, or we can just see that it was already verified).
-      // Wait! In the controller, how do we know if it was already verified?
-      // We can look at whether the emailVerified field of the user returned is true, but it is always true on success.
-      // Let's modify EmailVerificationService.verify to return an object or simply check user.emailVerifiedAt!
-      // If user.emailVerifiedAt is already non-null before we call it? But verifyEmail sets it.
-      // Let's see: if we lookup by token hash:
-      // const user = await this.userRepository.findByVerificationTokenHash(tokenHash);
-      // We can check if it's already verified.
-      // Wait, if it is already verified, we return the user. In the controller:
-      // If a user clicks it twice, the token is cleared, so they get 400.
-      // But if they clicked it and we checked in the service:
-      // Let's return { user, wasAlreadyVerified: user.emailVerified } from verify()!
-      // This is extremely robust and simple!
-      // Let's modify EmailVerificationService.verify to return `{ user: User, wasAlreadyVerified: boolean }`.
-      
-      const { user, wasAlreadyVerified } = await this.emailVerificationService.verify(token);
+      const { wasAlreadyVerified } = await this.emailVerificationService.verify(token);
 
       res.status(200).json({
         status: 200,
@@ -142,6 +112,153 @@ export class AuthController {
       res.status(200).json({
         status: 200,
         message: 'Password reset successfully.',
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * HTTP Handler for token refresh rotation.
+   * Exposes POST /api/v1/auth/refresh.
+   */
+  refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        res.status(400).json({
+          status: 400,
+          error: 'Bad Request',
+          message: 'Refresh token is required.',
+        });
+        return;
+      }
+
+      const userAgent = req.headers['user-agent'] || null;
+      const ipAddress = req.ip || null;
+      const response = await this.tokenService.refreshSession(refreshToken, null, ipAddress, userAgent);
+
+      res.status(200).json({
+        status: 200,
+        message: 'Token refreshed successfully.',
+        data: response,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * HTTP Handler for user logout.
+   * Exposes POST /api/v1/auth/logout.
+   */
+  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { refreshToken } = req.body;
+      await this.tokenService.logout(refreshToken);
+
+      res.status(200).json({
+        status: 200,
+        message: 'Logged out successfully.',
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * HTTP Handler for listing active sessions.
+   * Exposes GET /api/v1/auth/sessions (Protected by jwtGuard).
+   */
+  getSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = req.user!;
+      const currentSessionId = req.sessionId;
+      const activeSessions = await this.sessionService.findActiveSessions(user.id);
+
+      const formattedSessions = activeSessions.map((session) => ({
+        id: session.id,
+        device: session.deviceName || session.userAgent || 'Unknown Device',
+        createdAt: session.issuedAt,
+        lastUsedAt: session.lastUsedAt,
+        isCurrent: session.id === currentSessionId,
+      }));
+
+      res.status(200).json({
+        status: 200,
+        message: 'Active sessions retrieved successfully.',
+        data: formattedSessions,
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * HTTP Handler for revoking a specific session.
+   * Exposes DELETE /api/v1/auth/sessions/:id (Protected by jwtGuard).
+   */
+  revokeSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = req.user!;
+      const sessionId = req.params.id;
+
+      // 1. Fetch target session
+      const session = await this.sessionService.findSessionById(sessionId);
+      if (!session || session.revokedAt !== null) {
+        res.status(404).json({
+          status: 404,
+          error: 'Not Found',
+          message: 'Session not found.',
+        });
+        return;
+      }
+
+      // 2. Prevent users from revoking sessions belonging to other users
+      if (session.userId !== user.id) {
+        res.status(403).json({
+          status: 403,
+          error: 'Forbidden',
+          message: 'You are not authorized to revoke this session.',
+        });
+        return;
+      }
+
+      // 3. Revoke
+      await this.sessionService.revokeSession(sessionId);
+
+      res.status(200).json({
+        status: 200,
+        message: 'Session revoked successfully.',
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /**
+   * HTTP Handler for revoking all sessions except the current one.
+   * Exposes DELETE /api/v1/auth/sessions (Protected by jwtGuard).
+   */
+  revokeAllOtherSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = req.user!;
+      const currentSessionId = req.sessionId;
+
+      if (!currentSessionId) {
+        res.status(400).json({
+          status: 400,
+          error: 'Bad Request',
+          message: 'Current session ID could not be identified.',
+        });
+        return;
+      }
+
+      await this.sessionService.revokeAllOtherSessions(user.id, currentSessionId);
+
+      res.status(200).json({
+        status: 200,
+        message: 'All other sessions revoked successfully.',
       });
     } catch (err) {
       next(err);
