@@ -102,6 +102,8 @@ export class InMemoryUserRepository implements IUserRepository {
       emailVerified: false,
       emailVerifiedAt: null,
       passwordChangedAt: null,
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,
@@ -280,6 +282,72 @@ export class InMemoryUserRepository implements IUserRepository {
     return user?.passwordResetExpiresAt || null;
   }
 
+  private static readonly passwordHistoriesMap = new Map<string, string[]>();
+
+  private get passwordHistories(): Map<string, string[]> {
+    return InMemoryUserRepository.passwordHistoriesMap;
+  }
+
+  async incrementFailedAttempts(userId: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    const attempts = (user.failedLoginAttempts || 0) + 1;
+    const updated = {
+      ...user,
+      failedLoginAttempts: attempts,
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    const { passwordHash, ...userWithoutSecrets } = updated as any;
+    return userWithoutSecrets;
+  }
+
+  async lockAccount(userId: string, lockoutUntil: Date): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    const updated = {
+      ...user,
+      lockoutUntil,
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    const { passwordHash, ...userWithoutSecrets } = updated as any;
+    return userWithoutSecrets;
+  }
+
+  async resetFailedAttempts(userId: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+    const updated = {
+      ...user,
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    const { passwordHash, ...userWithoutSecrets } = updated as any;
+    return userWithoutSecrets;
+  }
+
+  async getPasswordHistory(userId: string): Promise<string[]> {
+    return this.passwordHistories.get(userId) || [];
+  }
+
+  async addPasswordHistoryEntry(userId: string, passwordHash: string): Promise<void> {
+    const history = this.passwordHistories.get(userId) || [];
+    history.push(passwordHash);
+    if (history.length > 5) {
+      history.shift();
+    }
+    this.passwordHistories.set(userId, history);
+  }
+
   /**
    * Clears all in-memory users and profiles.
    * Primarily used for unit testing to avoid cross-test state contamination.
@@ -287,5 +355,6 @@ export class InMemoryUserRepository implements IUserRepository {
   clear(): void {
     InMemoryUserRepository.usersMap.clear();
     InMemoryUserRepository.profilesMap.clear();
+    InMemoryUserRepository.passwordHistoriesMap.clear();
   }
 }

@@ -22,6 +22,24 @@ export class JwtService {
   private readonly refreshExpiresIn: string;
 
   constructor() {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Defense-in-depth: Even though env.ts validates at startup,
+    // JwtService enforces its own guard to prevent signing with dev defaults.
+    if (isProduction && !process.env.JWT_SECRET) {
+      throw new Error('CRITICAL: JWT_SECRET must be set in production');
+    }
+    if (isProduction && !process.env.JWT_REFRESH_SECRET) {
+      throw new Error('CRITICAL: JWT_REFRESH_SECRET must be set in production');
+    }
+
+    if (!isProduction && !process.env.JWT_SECRET) {
+      logger.warn('JWT_SECRET not set. Using development-only fallback key.');
+    }
+    if (!isProduction && !process.env.JWT_REFRESH_SECRET) {
+      logger.warn('JWT_REFRESH_SECRET not set. Using development-only fallback key.');
+    }
+
     this.jwtSecret = process.env.JWT_SECRET || 'dev_jwt_access_secret_key_123!';
     this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'dev_jwt_refresh_secret_key_456!';
     this.accessExpiresIn = process.env.JWT_EXPIRES_IN || '15m'; // default 15 minutes

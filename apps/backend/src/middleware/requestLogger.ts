@@ -47,8 +47,10 @@ export const correlationIdMiddleware = (req: Request, res: Response, next: NextF
   // Set the correlation ID in the context
   store.set('correlationId', correlationId);
   
-  // Set it on the response header so the client can trace it
+  // Set it on the response headers so the client can trace it
+  // X-Correlation-ID is our primary header; X-Request-ID is the industry-standard alias
   res.setHeader('X-Correlation-ID', correlationId);
+  res.setHeader('X-Request-ID', correlationId);
 
   // Run the rest of the request inside this async context
   contextStorage.run(store, () => {

@@ -4,6 +4,7 @@ import { IUserRepository } from '../user.repository';
 import { ISessionRepository } from '../session.repository';
 import { User } from '../user.entity';
 import { logger } from '../../../utils/logger';
+import { SecurityAuditLogger, SecurityEvent } from '../../../utils/auditLogger';
 import { InvalidTokenError, ExpiredTokenError } from './email-verification.service';
 
 export interface AuthTokenResponseDto {
@@ -103,6 +104,7 @@ export class TokenService {
       payload = this.jwtService.verifyRefreshToken(plaintextRefreshToken);
     } catch (err) {
       logger.warn('Token refresh failed: Invalid/Expired JWT structure');
+      SecurityAuditLogger.log({ event: SecurityEvent.INVALID_REFRESH_TOKEN, metadata: { reason: 'jwt_verification_failed' } });
       throw new InvalidTokenError();
     }
 
@@ -112,6 +114,7 @@ export class TokenService {
 
     if (!session || session.revokedAt !== null) {
       logger.warn({ tokenHash }, 'Token refresh failed: Revoked or missing session hash');
+      SecurityAuditLogger.log({ event: SecurityEvent.INVALID_REFRESH_TOKEN, metadata: { reason: 'revoked_or_missing_session' } });
       throw new InvalidTokenError();
     }
 

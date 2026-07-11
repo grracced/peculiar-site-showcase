@@ -69,6 +69,10 @@ model User {
   passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
   passwordChangedAt DateTime? @map("password_changed_at")
 
+  // Lockout tracking fields
+  failedLoginAttempts Int @default(0) @map("failed_login_attempts")
+  lockoutUntil DateTime? @map("lockout_until")
+
   // Audit timestamps — automatically managed.
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -81,6 +85,7 @@ model User {
   // Relationships
   profile UserProfile?
   sessions UserSession[]
+  passwordHistories PasswordHistory[]
 
   // Table name in snake_case per PostgreSQL convention.
   @@map("users")
@@ -136,4 +141,16 @@ model UserSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_sessions")
+}
+
+model PasswordHistory {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  passwordHash String @map("password_hash") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_histories")
 }

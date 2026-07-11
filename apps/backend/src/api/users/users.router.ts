@@ -4,6 +4,7 @@ import { RegistrationService } from '../../domain/user/services/registration.ser
 import { EmailVerificationService } from '../../domain/user/services/email-verification.service';
 import { MockEmailService } from '../../infrastructure/email/mock-email.service';
 import { UsersController } from './users.controller';
+import { authLimiter } from '../../middleware/rateLimiter';
 
 const usersRouter = Router();
 
@@ -14,7 +15,7 @@ const emailService = new MockEmailService();
 const registrationService = new RegistrationService(userRepository, emailVerificationService, emailService);
 const usersController = new UsersController(registrationService);
 
-// 2. Map endpoints to handlers
-usersRouter.post('/', usersController.register);
+// 2. Map endpoints to handlers (with route-specific rate limiting)
+usersRouter.post('/', authLimiter, usersController.register);
 
 export { usersRouter };

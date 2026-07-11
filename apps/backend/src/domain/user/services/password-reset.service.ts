@@ -2,9 +2,17 @@ import crypto from 'crypto';
 import { IUserRepository } from '../user.repository';
 import { ISessionRepository } from '../session.repository';
 import { IEmailService } from './email.interface';
-import { hashPassword } from '../../../utils/password';
+import { hashPassword, verifyPassword } from '../../../utils/password';
 import { logger } from '../../../utils/logger';
+import { SecurityAuditLogger, SecurityEvent } from '../../../utils/auditLogger';
 import { InvalidTokenError, ExpiredTokenError } from './email-verification.service';
+
+export class PasswordReuseError extends Error {
+  constructor() {
+    super('Password has been used recently and cannot be reused');
+    this.name = 'PasswordReuseError';
+  }
+}
 
 export class PasswordResetService {
   constructor(
@@ -54,6 +62,7 @@ export class PasswordResetService {
     await this.emailService.sendPasswordResetEmail(user.email, resetLink);
 
     logger.info({ userId: user.id, expiresAt }, 'Password reset token generated and sent successfully');
+    SecurityAuditLogger.log({ event: SecurityEvent.PASSWORD_RESET_REQUESTED, userId: user.id, email: user.email });
   }
 
   /**
@@ -86,15 +95,28 @@ export class PasswordResetService {
       throw new ExpiredTokenError();
     }
 
+    // 2.1 Password reuse prevention check (Argon2 historical hash compare)
+    const history = await this.userRepository.getPasswordHistory(user.id);
+    for (const historicalHash of history) {
+      if (await verifyPassword(historicalHash, newPassword)) {
+        logger.warn({ userId: user.id }, 'Password reset failed: Password reuse detected');
+        throw new PasswordReuseError();
+      }
+    }
+
     // 3. Hash the new password using Argon2
     const passwordHash = await hashPassword(newPassword);
 
     // 4. Update the user's password and clear token fields
     await this.userRepository.resetPassword(user.id, passwordHash, new Date());
 
+    // 4.1 Log the new password hash into history
+    await this.userRepository.addPasswordHistoryEntry(user.id, passwordHash);
+
     // 5. Invalidate all active user sessions
     await this.sessionRepository.revokeAllForUser(user.id);
     logger.info({ userId: user.id }, 'Password reset executed successfully. All active sessions revoked.');
+    SecurityAuditLogger.log({ event: SecurityEvent.PASSWORD_CHANGED, userId: user.id });
   }
 
   /**

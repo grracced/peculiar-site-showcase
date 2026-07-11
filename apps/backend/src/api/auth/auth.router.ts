@@ -10,6 +10,12 @@ import { SessionService } from '../../domain/user/services/session.service';
 import { TokenService } from '../../domain/user/services/token.service';
 import { AuthController } from './auth.controller';
 import { jwtGuard } from '../../middleware/jwtGuard';
+import {
+  authLimiter,
+  passwordResetLimiter,
+  verifyEmailLimiter,
+  refreshTokenLimiter,
+} from '../../middleware/rateLimiter';
 
 const authRouter = Router();
 
@@ -34,11 +40,12 @@ const authController = new AuthController(
   sessionService
 );
 
-authRouter.post('/login', authController.login);
-authRouter.get('/verify-email', authController.verifyEmail);
-authRouter.post('/forgot-password', authController.forgotPassword);
-authRouter.post('/reset-password', authController.resetPassword);
-authRouter.post('/refresh', authController.refresh);
+// Route-specific rate limiting for granular control
+authRouter.post('/login', authLimiter, authController.login);
+authRouter.get('/verify-email', verifyEmailLimiter, authController.verifyEmail);
+authRouter.post('/forgot-password', passwordResetLimiter, authController.forgotPassword);
+authRouter.post('/reset-password', passwordResetLimiter, authController.resetPassword);
+authRouter.post('/refresh', refreshTokenLimiter, authController.refresh);
 authRouter.post('/logout', authController.logout);
 authRouter.get('/sessions', jwtGuard, authController.getSessions);
 authRouter.delete('/sessions', jwtGuard, authController.revokeAllOtherSessions);

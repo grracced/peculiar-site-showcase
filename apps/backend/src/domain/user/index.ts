@@ -15,6 +15,7 @@ export * from './user.repository';
 export * from './user-profile.repository';
 export * from './user.value-objects';
 export * from './user-session.entity';
+export * from './password-history.entity';
 export * from './session.repository';
 export * from './services/registration.service';
 export * from './services/auth.service';

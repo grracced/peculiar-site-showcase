@@ -39,6 +39,12 @@ export interface User {
   /** Timestamp of when the user changed/reset their password. */
   readonly passwordChangedAt: Date | null;
 
+  /** Number of failed login attempts for account lockout tracking. */
+  readonly failedLoginAttempts: number;
+
+  /** Timestamp until which the account is locked out, or null if active. */
+  readonly lockoutUntil: Date | null;
+
   /** Timestamp when the account was created. */
   readonly createdAt: Date;
 

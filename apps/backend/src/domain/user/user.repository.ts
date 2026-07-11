@@ -164,4 +164,29 @@ export interface IUserRepository {
    * @returns Expiration timestamp, or null if not set or user not found.
    */
   getPasswordResetExpiry(userId: string): Promise<Date | null>;
+
+  /**
+   * Increments the user's failed login attempt counter.
+   */
+  incrementFailedAttempts(userId: string): Promise<User>;
+
+  /**
+   * Locks the user's account until a specific expiration date.
+   */
+  lockAccount(userId: string, lockoutUntil: Date): Promise<User>;
+
+  /**
+   * Resets the user's failed login attempt counter and clears lockout details.
+   */
+  resetFailedAttempts(userId: string): Promise<User>;
+
+  /**
+   * Retrieves previous password hashes of a user for reuse prevention.
+   */
+  getPasswordHistory(userId: string): Promise<string[]>;
+
+  /**
+   * Adds a new entry to the user's password change history.
+   */
+  addPasswordHistoryEntry(userId: string, passwordHash: string): Promise<void>;
 }
