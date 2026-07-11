@@ -32,6 +32,15 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
 
   /**
+   * Retrieves the hashed password for a user by their email address.
+   * This is separate from findByEmail to prevent leaking the password hash
+   * in public User domain entities.
+   * @param email - The user's email address (case-insensitive).
+   * @returns The hashed password string, or null if user not found.
+   */
+  getPasswordHashByEmail(email: string): Promise<string | null>;
+
+  /**
    * Finds a user along with their associated profile in a single query.
    * @param id - The user's UUID.
    * @returns The UserWithProfile composite, or null if not found.

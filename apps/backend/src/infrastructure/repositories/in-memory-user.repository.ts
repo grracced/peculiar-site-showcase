@@ -9,8 +9,16 @@ import crypto from 'crypto';
  * Used for testing and local scaffolding before connecting PostgreSQL/Prisma.
  */
 export class InMemoryUserRepository implements IUserRepository {
-  private users = new Map<string, User & { passwordHash?: string }>();
-  private profiles = new Map<string, UserProfile>();
+  private static readonly usersMap = new Map<string, User & { passwordHash?: string }>();
+  private static readonly profilesMap = new Map<string, UserProfile>();
+
+  private get users() {
+    return InMemoryUserRepository.usersMap;
+  }
+
+  private get profiles() {
+    return InMemoryUserRepository.profilesMap;
+  }
 
   async findById(id: string): Promise<User | null> {
     const user = this.users.get(id);
@@ -31,6 +39,14 @@ export class InMemoryUserRepository implements IUserRepository {
     }
     const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async getPasswordHashByEmail(email: string): Promise<string | null> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = Array.from(this.users.values()).find(
+      (u) => u.email.toLowerCase().trim() === normalizedEmail && u.deletedAt === null
+    );
+    return user?.passwordHash || null;
   }
 
   async findWithProfile(id: string): Promise<UserWithProfile | null> {
@@ -147,5 +163,14 @@ export class InMemoryUserRepository implements IUserRepository {
       deletedAt: new Date(),
       updatedAt: new Date(),
     });
+  }
+
+  /**
+   * Clears all in-memory users and profiles.
+   * Primarily used for unit testing to avoid cross-test state contamination.
+   */
+  clear(): void {
+    InMemoryUserRepository.usersMap.clear();
+    InMemoryUserRepository.profilesMap.clear();
   }
 }

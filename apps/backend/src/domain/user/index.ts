@@ -15,4 +15,5 @@ export * from './user.repository';
 export * from './user-profile.repository';
 export * from './user.value-objects';
 export * from './services/registration.service';
+export * from './services/auth.service';
 

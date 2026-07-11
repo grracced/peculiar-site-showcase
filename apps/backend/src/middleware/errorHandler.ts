@@ -36,7 +36,35 @@ export function errorHandler(
     });
   }
 
-  // 3. Fallback for unhandled internal exceptions
+  // 3. Handle authentication failures
+  if (err.name === 'InvalidCredentialsError') {
+    logger.warn({ correlationId }, 'Authentication failed: Invalid credentials');
+    return res.status(401).json({
+      status: 401,
+      error: 'Unauthorized',
+      message: err.message,
+    });
+  }
+
+  if (err.name === 'EmailNotVerifiedError') {
+    logger.warn({ correlationId }, 'Authentication failed: Email unverified');
+    return res.status(403).json({
+      status: 403,
+      error: 'Forbidden',
+      message: err.message,
+    });
+  }
+
+  if (err.name === 'AccountSuspendedError') {
+    logger.warn({ correlationId }, 'Authentication failed: Account suspended');
+    return res.status(403).json({
+      status: 403,
+      error: 'Forbidden',
+      message: err.message,
+    });
+  }
+
+  // 4. Fallback for unhandled internal exceptions
   logger.error(
     { correlationId, err: { message: err.message, stack: err.stack } },
     'Unhandled server error occurred'

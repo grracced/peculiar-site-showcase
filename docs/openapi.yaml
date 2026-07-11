@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: VerifAI API Specification
+  description: API documentation for VerifAI - Document Verification SaaS on Hedera.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development server
+paths:
+  /users:
+    post:
+      summary: Register a new user
+      description: Validates names, email, and password strength, and inserts both user and profile rows transactionally.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - firstName
+                - lastName
+                - email
+                - password
+                - confirmPassword
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                  minLength: 2
+                  maxLength: 50
+                lastName:
+                  type: string
+                  example: Doe
+                  minLength: 2
+                  maxLength: 50
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+                confirmPassword:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: User registered successfully
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 2d94cfbf-b7c1-4045-812f-9174dfb2cc22
+                      email:
+                        type: string
+                        example: john.doe@example.com
+                      role:
+                        type: string
+                        example: USER
+                      status:
+                        type: string
+                        example: PENDING_VERIFICATION
+                      emailVerified:
+                        type: boolean
+                        example: false
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+                      profile:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                            example: e93ab630-fbf3-4623-a128-bbbe07cf90b2
+                          fullName:
+                            type: string
+                            example: John Doe
+                          avatarUrl:
+                            type: string
+                            nullable: true
+                          subscriptionTier:
+                            type: string
+                            example: FREE
+                          createdAt:
+                            type: string
+                            format: date-time
+                          updatedAt:
+                            type: string
+                            format: date-time
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Email Already Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+
+  /auth/login:
+    post:
+      summary: User Login
+      description: Verifies user credentials using Argon2. Blocks unverified or suspended users.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: User logged in successfully
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 2d94cfbf-b7c1-4045-812f-9174dfb2cc22
+                      email:
+                        type: string
+                        example: john.doe@example.com
+                      role:
+                        type: string
+                        example: USER
+                      status:
+                        type: string
+                        example: ACTIVE
+                      emailVerified:
+                        type: boolean
+                        example: true
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Invalid Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  error:
+                    type: string
+                    example: Unauthorized
+                  message:
+                    type: string
+                    example: Invalid email or password
+        '403':
+          description: Access Forbidden (Unverified/Suspended)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  error:
+                    type: string
+                    example: Forbidden
+                  message:
+                    type: string
+                    example: Email address has not been verified
+
+components:
+  schemas:
+    ValidationError:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Validation Error
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: A valid email address is required.
+    ConflictError:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 409
+        error:
+          type: string
+          example: Conflict
+        message:
+          type: string
+          example: The email address "john.doe@example.com" is already registered.

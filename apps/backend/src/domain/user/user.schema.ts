@@ -107,3 +107,29 @@ export const AdminUpdateUserSchema = z.object({
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 export type UpdateUserProfileInput = z.infer<typeof UpdateUserProfileSchema>;
 export type AdminUpdateUserInput = z.infer<typeof AdminUpdateUserSchema>;
+
+/**
+ * Schema for external login requests (DTO).
+ * Enforces email normalization and presence of required credentials.
+ */
+export const LoginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, { message: 'Password is required.' }),
+});
+
+export type LoginInput = z.infer<typeof LoginSchema>;
+
+/**
+ * Schema defining the validation contract for authentication responses.
+ * Restricts data to non-sensitive fields.
+ */
+export const AuthResponseSchema = z.object({
+  userId: z.string().uuid(),
+  email: emailSchema,
+  fullName: z.string().min(1).max(100),
+  role: userRoleSchema,
+  emailVerified: z.boolean(),
+});
+
+export type AuthResponseDto = z.infer<typeof AuthResponseSchema>;
+
