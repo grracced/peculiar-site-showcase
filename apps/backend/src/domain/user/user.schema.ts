@@ -60,12 +60,27 @@ export const subscriptionTierSchema = z.nativeEnum(SubscriptionTier);
 // ---------------------------------------------------------------------------
 
 /**
- * Schema for creating a new user account.
- * Used during the registration flow to validate incoming request data.
+ * Schema for creating a new user account (Internal Repository Input).
+ * Used when mapping DTOs to the actual domain inputs.
  */
 export const CreateUserSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+});
+
+/**
+ * Schema for external registration requests (DTO).
+ * Enforces first/last name presence and strict password matching.
+ */
+export const UserRegistrationSchema = z.object({
+  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }).max(50).trim(),
+  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }).max(50).trim(),
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match.',
+  path: ['confirmPassword']
 });
 
 /**

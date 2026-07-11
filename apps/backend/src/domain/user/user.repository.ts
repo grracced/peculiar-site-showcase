@@ -48,6 +48,20 @@ export interface IUserRepository {
   create(data: CreateUserInput): Promise<User>;
 
   /**
+   * Transactionally creates both the User and UserProfile records.
+   * This implements the transactional requirement for the registration flow.
+   * 
+   * @param data - The user registration data, including names and hashed password.
+   * @returns The created User and associated UserProfile composite.
+   */
+  createWithProfile(data: {
+    email: string;
+    passwordHash: string;
+    firstName: string;
+    lastName: string;
+  }): Promise<UserWithProfile>;
+
+  /**
    * Updates a user's application profile (name, avatar, etc.).
    * @param userId - The UUID of the user whose profile is being updated.
    * @param data - Validated partial profile update data.
