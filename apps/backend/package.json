@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.13.0",
-    "argon2": "^0.40.1",
+    "argon2": "^0.40.3",
     "express": "^4.19.2",
     "pino": "^8.19.0",
     "pino-http": "^9.0.0",
@@ -27,5 +27,12 @@
     "prisma": "^5.13.0",
     "tsx": "^4.7.1",
     "typescript": "^5.4.2"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "argon2@0.40.3": true,
+    "esbuild@0.28.1": true,
+    "prisma@5.22.0": true
   }
 }
