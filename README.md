@@ -22,7 +22,7 @@ Everything here is derived from the private repository (code, design documents, 
 | **Size** | ~106 PHP modules in `includes/`, 88 forward-only migrations, 235 test programs run by the harness |
 | **Interesting because** | Historical academic context, scoped authorization, a single result calculation path feeding every view and export, maker-checker workflows, append-only financial and audit records, controlled production deploys |
 
-## Architecture
+## Architecture 
 
 ![System architecture: browsers, Nginx, isolated PHP-FPM pools, PHP modules, MySQL](diagrams/system-architecture.svg)
 
@@ -31,7 +31,7 @@ One codebase is served through host-based routing to separate PHP-FPM pools (pub
 ## Engineering highlights
 
 1. **Historical academic context.** Every result read is keyed by Session + Term + Class + Category + Subject (+ Student). Viewing 2019/2020 results never depends on, or changes, the school's active term. → [Academic model](docs/architecture.md#academic-model)
-2. **One calculation path.** Totals, cumulative scores, class averages and positions come from one calculation service. Explorer views, PDFs, CSV, ZIP and report cards are renderers over the same read models, so they cannot disagree. → [Results system](docs/results-system.md)
+2. **One calculation path.** Totals, cumulative scores, class averages and positions come from one calculation service. Explorer views, PDFs, CSV, ZIP and report cards etc are renderers over the same read models, so they cannot disagree. → [Results system](docs/results-system.md)
 3. **Scoped authorization.** A class teacher can view and export every subject in the class they lead but cannot edit any of them; a subject teacher manages only assigned subjects. Authority is per session, not "is a teacher". → [Authorization](docs/authorization-and-rbac.md)
 4. **A single export boundary.** Nine export types go through one route and one dispatcher: normalize → validate → authorize → read model → render → audit. → [Export architecture](docs/export-architecture.md)
 5. **Integrity by design.** Append-only payment and audit records enforced by database triggers, maker-checker separation of duties, CSRF on state changes, output escaping, CSV formula-injection defence, private no-store documents. → [Security and data integrity](docs/security-and-data-integrity.md)
