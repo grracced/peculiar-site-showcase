@@ -54,7 +54,7 @@ The point of this history is the shape of the work: each step preserved live beh
 
 - **Specification first.** Each programme (Omega, Orbit, Post-Orbit) has a written specification with phase status, non-negotiable rules and known limitations; the repository documents record what was verified versus assumed.
 - **Small phases with a test each.** Nearly every phase adds a `*-check` program (see [evidence/milestones.md](../evidence/milestones.md)).
-- **Assisted development, disclosed.** Commit authorship in the private repository is 779 of 810 commits by the repository owner and 31 by an AI coding assistant, and several feature branches carry assistant-style names. Specifications, architecture decisions, review, merging and acceptance are recorded under the owner's account. This is stated so the history is read accurately.
+- **AI-assisted implementation, disclosed.** AI coding agents were used in implementing the system. Architecture, specifications, review, merging and acceptance were directed by the repository owner. The private repository's history reflects this: 779 of 810 commits are under the owner's account and 31 are authored by an AI assistant, with further assisted work merged under the owner's account and several feature branches carrying assistant-style names. This is stated so the history is read accurately.
 - **Honest status.** Status ledgers separate "implemented", "merged", "deployed" and "operator-accepted". Several documents explicitly record "not deployed" or "awaiting review" states.
 
 ## Historical or retired
